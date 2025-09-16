@@ -69,7 +69,7 @@ def go(config: DictConfig):
             _ = mlflow.run(
                 os.path.join(hydra.utils.get_original_cwd(), "src", "data_check"),
                 #f"{config['main']['components_repository']}/data_check",
-                entry_point="main",
+                "main",
                 parameters={
                     "csv": "clean_sample.csv:latest",
                     "ref": "clean_sample.csv:reference",
@@ -83,6 +83,18 @@ def go(config: DictConfig):
             ##################
             # Implement here #
             ##################
+            _ = mlflow.run(
+                f"{config['main']['components_repository']}/train_val_test_split",
+                'main',
+                parameters={
+                    "input": "clean_sample.csv:latest",
+                    "test_size": config["modeling"]["test_size"],
+                    "random_seed": config["modeling"]["random_seed"],
+                    "stratify_by": config["modeling"]["stratify_by"],
+                },
+            )
+            
+            
             pass
 
         if "train_random_forest" in active_steps:
@@ -98,7 +110,20 @@ def go(config: DictConfig):
             ##################
             # Implement here #
             ##################
-
+            _ = mlflow.run(
+                os.path.join(hydra.utils.get_original_cwd(), "src", "train_random_forest"),
+                ##f"{config['main']['components_repository']}/train_val_test_split",
+                "main",
+                parameters={
+                    "trainval_artifact" : "trainval_data.csv:latest",
+                    "output_artifact" : "random_forest_export",                   
+                    "val_size": config["modeling"]["val_size"],
+                    "random_seed": config["modeling"]["random_seed"],
+                    "stratify_by": config["modeling"]["stratify_by"],
+                    "max_tfidf_features": config["modeling"]["max_tfidf_features"],
+                    "rf_config": rf_config,
+                },
+            )
             pass
 
         if "test_regression_model" in active_steps:
@@ -106,6 +131,15 @@ def go(config: DictConfig):
             ##################
             # Implement here #
             ##################
+             _ = mlflow.run(
+                os.path.join(hydra.utils.get_original_cwd(), "components", "test_regression_model"),
+                #f"{config['main']['components_repository']}/train_val_test_split"
+                "main",
+                parameters={
+                    "mlflow_model" : "random_forest_export:prod",
+                    "test_dataset" : "test_data.csv:latest",
+                },
+            )
 
             pass
 
